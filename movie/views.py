@@ -24,7 +24,7 @@ def add_seen(request, movie_id):
             weight = movie.weight
             movie.delete()
             # if user seen movie , popularity + 3
-            new_record = Popularity(movieid_id=movie_id, weight=weight + 3)
+            new_record = Popularity(movieid_id=movie_id, weight=weight + 2)
             new_record.save()
             new_record = Seen(movieid_id=movie_id, username=request.user.get_username())
             new_record.save()
@@ -104,13 +104,15 @@ def review_movie(request):
                     rate_movie.review = content
                     print(rate_movie)
                     rate_movie.save()
+                    # add activity
+                    Activity.objects.create(review = rate_movie, user = request.user, type = 3)
 
                 except:
                     rate_movie = User_Rate(movie=movie, user=user, review=content)
                     rate_movie.save()
-                    # every one create 1 review => create here !!!
+                    # every one create 1 review => create activity  here !!!
+                    # add activity
                     Activity.objects.create(review = rate_movie, user = request.user, type = 3)
-                    print(rate_movie)
 
                 return JsonResponse({'mess':'success'})
             else:
@@ -142,7 +144,7 @@ def reply_review(request):
                     data['send_user_url'] = request.user.profile.get_absolute_url()
                     data['send_user_avatar']= request.user.profile.profile_picture.url
                     data['date_posted']  = 'just now'
-                    data['count_reply'] = rate_movie.total_reply() + 1
+                    data['count_reply'] = rate_movie.total_reply()
                     print('data here', data)
 
                     return JsonResponse(data)
@@ -176,10 +178,36 @@ def add_tag(request):
                     return JsonResponse(data)
                 else:
                     tag = MovieTags(movie=movie, user=user, tags=tags)
+                    comunity_tags = MovieTags.objects.filter(movie=movie)
+                    if len(comunity_tags) >0:
+                        data['showComunity'] = 1
+                    else:
+                        data['showComunity'] = 0
+                    # tinh toan chen vao comunity
+                    dict_comunity = {}
+                    for historyTag in comunity_tags:
+                        if historyTag.tags in dict_comunity.keys():
+                            dict_comunity[historyTag.tags] +=1
+                        else:
+                            dict_comunity[historyTag.tags] = 1
+                    # neu tag moi them co trong danh sach cac tag trong qua khu
+                    if tags in dict_comunity.keys():
+                        # neu co
+                        dict_comunity[tags] +=1
+                        data['newTag'] = 0 # false
+                        data['new_count'] = dict_comunity[tags]
+                    else:
+                        dict_comunity[tags] =1
+                        data['newTag'] = 1 # true
+                        data['new_count'] = 1
+                    # tinh toan chen vao user tags
                     tag.save()
+                    # save and send to show user's tag
+                    data['id'] = tag.id
                     data['mess'] = 'success'
                     data['tags'] = tags
                     data['count'] = MovieTags.objects.filter(movie=movie, tags=tags).count()
+                    print(data)
                     return JsonResponse(data)
             except:
                 print('iam very sick !!!')
@@ -231,6 +259,7 @@ def get_data_rate(request):
                 # rate_averange = round(sum_rate/count, 2)
 
                 # data['type'] = 'oke'
+                data['mess'] = 'oke'
                 avg =  User_Rate.objects.filter(movie=movie, rate__gte=1).aggregate(Avg('rate'))
                 data['rate_all_for_movie'] = round(avg['rate__avg'], 2)
 
@@ -297,30 +326,80 @@ def movie_detail(request, model, id):
 
             # get tags from movie
             users_tags = []
-            comunity_tags = []
-            dict_tag = {}
+            all_tags = []
+            dict_tag_users = {}
+            dict_all_tag = {}
             try:
                 users_tags = MovieTags.objects.filter(movie=object, user = request.user)
-                comunity_tags = MovieTags.objects.filter(movie=object)
-                for tag in comunity_tags:
-                    if tag.tags in dict_tag.keys():
-                        dict_tag[tag.tags] += 1
+                all_tags = MovieTags.objects.filter(movie=object)
+                
+                # must build tag by dict 
+                # comunity's tag
+                for tag in all_tags:
+                    if tag.tags in dict_all_tag.keys():
+                        dict_all_tag[tag.tags] +=1
                     else:
-                        dict_tag[tag.tags] = 1
-
+                        dict_all_tag[tag.tags] =1
+                # print(dict_all_tag)
+                # print(dict_tag_users)
             except:
+                dict_tag_users = []
+                dict_all_tag = []
                 users_tags = []
-                dict_tag = {}
-                comunity_tags = []
     except:
         return render(request, '404.html')
 
     # print(review_form_flag)
-    notifications = Notification.objects.filter(user = request.user).order_by('-date_posted')[:5]
-    count_noti = UserSeenNotifycation.objects.filter(user = request.user, is_seen = False).count()
-    # return
-    return render(request, 'movie_detail.html', {'users_tags': users_tags, 'dict_tag':dict_tag,
-    'items': items,'notifications' : notifications, 'count_noti':count_noti, 'review_form_flag':review_form_flag  ,'number': len(items), 'object': object , 'rate_score' : rate_score,'user':request.user, 'reviews':reviews})
+
+    if request.user.is_authenticated :
+        notifications = Notification.objects.filter(user = request.user).order_by('-date_posted')[:10]
+        count_noti = UserSeenNotifycation.objects.filter(user = request.user, is_seen = False).count()
+        return render(request, 'movie_detail.html', {'users_tags': users_tags, 'comunity_tags':dict_all_tag,
+        'items': items,'notifications' : notifications, 'count_noti':count_noti, 'review_form_flag':review_form_flag  ,'number': len(items), 'object': object , 'rate_score' : rate_score,'user':request.user, 'reviews':reviews})
+
+
+    return render(request, 'movie_detail.html', {
+    'items': items  ,'number': len(items), 'object': object , 'rate_score' : rate_score,'user':request.user, 'reviews':reviews})
+
+
+@csrf_exempt
+def delete_tag(request):
+    if request.method == 'POST':
+        if request.is_ajax():
+            tagID = request.POST.get('tagID')
+            print(tagID)
+            data = {}
+            try:
+                tag = MovieTags.objects.get(id=tagID)
+                # print(tag)
+                comunity_tags = MovieTags.objects.filter(movie=tag.movie)
+                # tinh toan de xoa khoi comunity
+                dict_comunity = {}
+                for historyTag in comunity_tags:
+                    if historyTag.tags in dict_comunity.keys():
+                        dict_comunity[historyTag.tags] +=1
+                    else:
+                        dict_comunity[historyTag.tags] = 1
+                # neu chi co 1 tag cua user do trong comunity
+                if dict_comunity[tag.tags] == 1:
+                    # xoa luon ca o comunity
+                    data['deleteComunity'] = 1 # true
+                    data['id_group'] = '#tag' + tag.tags
+                else:
+                    data['deleteComunity'] = 0 # False
+                    data['id_count'] = '#x' + tag.tags
+                    data['count'] = 'x' + str(dict_comunity[tag.tags] - 1)
+
+                data['mess'] = 'succsess'
+                data['tagName'] = tag.tags
+                # delete ta
+                tag.delete()
+                # print(data)
+                return JsonResponse(data)
+            except:
+                return JsonResponse({'mess':'error'})
+    return JsonResponse({'mess':'error'})
+
 
 @csrf_exempt
 def actor_detail(request, model, id):
@@ -458,23 +537,51 @@ def seen(request, movie_id):
     movie_dict = search_index.data_in_memory['movie_dict']
     records = Seen.objects.filter(username=request.user.get_username())
     movies = []
-    popular_movies = Popularity.objects.all().order_by('-weight')
-    popular = []
-    for movie in popular_movies[:11]:
-        try:
-            popular.append({'movieid': movie.movieid_id, 'poster': movie_dict[movie.movieid_id].poster})
-        except:
-            continue
+    watched_movies = set([movie_dict[movie.movieid_id] for movie in records ] +
+                        [movie_dict[movie.movieid_id] for movie in Expect.objects.filter(username=request.user.username)])
+    unwatched_movies = set(search_index.data_in_memory['movie_list']) - watched_movies
+    
     data = {}
-    data['popular'] = popular
+    # add you may also like movie - recommend here 
+
     data['top_movie'] = top_movie(request)
     data['action_movie'] = action_movie(request)
     data['comedy_movie'] = comedy_movie(request)
+    list_movie_id = []
+    #id movie
+    recommend_movie = []
+    recommend = []
+    recommend_for_seen_movie = []
     for record in records:
         movie_id = str(record).split('|')[1]
         movies.append(Movie.objects.get(movieid=movie_id))
+        list_movie_id.append(movie_id)
+    if len(list_movie_id) >= 2:
+        recommend_movie = get_recommend_by_cosine(list_movie_id)
+        for movieid in recommend_movie:
+            recommend.append(Movie.objects.get(movieid=movieid))
+        for movie in recommend:
+            if movie not in watched_movies:
+                recommend_for_seen_movie.append({'movieid': movie.movieid, 'poster': movie.poster})
+    if len(list_movie_id) == 1:
+        recommend_movie = get_recommend_by_jaccard(list_movie_id[0])
+        for movieid in recommend_movie:
+            recommend.append(Movie.objects.get(movieid=movieid))
+        for movie in recommend:
+            if movie not in watched_movies:
+                recommend_for_seen_movie.append({'movieid': movie.movieid, 'poster': movie.poster})
+    if len(list_movie_id) == 0:
+        for movie in unwatched_movies:
+                recommend_for_seen_movie.append({'movieid': movie.movieid, 'poster': movie.poster})
+                if len(recommend_for_seen_movie) == 11:
+                    break
+    if len(recommend_for_seen_movie) > 11:
+        recommend_for_seen_movie = [recommend_for_seen_movie[i] for i in random.sample(range(len(recommend_for_seen_movie)), 11)]
+
+    
+    data['recommend_movies'] = recommend_for_seen_movie
     data['items'] = movies
-    data['number'] = len(movies)
+    data['number_seen_movie'] = len(movies)
     return render(request, 'seen.html', data)
 
 @login_required
@@ -485,27 +592,56 @@ def expect(request, movie_id):
             d.delete()
         except:
             return render(request, '404.html')
+    movie_dict = search_index.data_in_memory['movie_dict']
     records = Expect.objects.filter(username=request.user.get_username())
     movies = []
-    for record in records:
-        movie_id = str(record).split('|')[1]
-        movies.append(Movie.objects.get(movieid=movie_id))
-    ## add new infomation
-    movie_dict = search_index.data_in_memory['movie_dict']
-    popular_movies = Popularity.objects.all().order_by('-weight')
-    popular = []
-    for movie in popular_movies[:11]:
-        try:
-            popular.append({'movieid': movie.movieid_id, 'poster': movie_dict[movie.movieid_id].poster})
-        except:
-            continue
+    watched_movies = set([movie_dict[movie.movieid_id] for movie in records ] +
+                        [movie_dict[movie.movieid_id] for movie in Expect.objects.filter(username=request.user.username)])
+    unwatched_movies = set(search_index.data_in_memory['movie_list']) - watched_movies
+    
     data = {}
-    data['popular'] = popular
+    # add you may also like movie - recommend here 
+
     data['top_movie'] = top_movie(request)
     data['action_movie'] = action_movie(request)
     data['comedy_movie'] = comedy_movie(request)
+    list_movie_id = []
+    #id movie
+    recommend_movie = []
+    recommend = []
+    recommend_for_expect_movie = []
+    for record in records:
+        movie_id = str(record).split('|')[1]
+        movies.append(Movie.objects.get(movieid=movie_id))
+        list_movie_id.append(movie_id)
+    if len(list_movie_id) >= 2:
+        recommend_movie = get_recommend_by_cosine(list_movie_id)
+        for movieid in recommend_movie:
+            recommend.append(Movie.objects.get(movieid=movieid))
+        for movie in recommend:
+            if movie not in watched_movies:
+                recommend_for_expect_movie.append({'movieid': movie.movieid, 'poster': movie.poster})
+    if len(list_movie_id) == 1:
+        recommend_movie = get_recommend_by_jaccard(list_movie_id[0])
+        for movieid in recommend_movie:
+            recommend.append(Movie.objects.get(movieid=movieid))
+        for movie in recommend:
+            if movie not in watched_movies:
+                recommend_for_expect_movie.append({'movieid': movie.movieid, 'poster': movie.poster})
+    if len(list_movie_id) == 0:
+        for movie in unwatched_movies:
+                recommend_for_expect_movie.append({'movieid': movie.movieid, 'poster': movie.poster})
+                if len(recommend_for_expect_movie) == 11:
+                    break
+    if len(recommend_for_expect_movie) > 11:
+        recommend_for_expect_movie = [recommend_for_expect_movie[i] for i in random.sample(range(len(recommend_for_expect_movie)), 11)]
+
+    
+    data['recommend_movies'] = recommend_for_expect_movie
     data['items'] = movies
-    data['number'] = len(movies)
+    data['number_expect_movie'] = len(movies)
+    
+    
     return render(request, 'expect.html', data)
 
 
@@ -556,9 +692,12 @@ def favourite_movie(user):
         for rate in user_rate:
             sum_rate += rate.rate
         medium = sum_rate/count
-        # print(medium)
-        list_rate_good = User_Rate.objects.filter(user=user, rate__gte=medium)
-        print('list movieid liked : ')
+        print('medium',medium)
+        if medium >=3:
+            list_rate_good = User_Rate.objects.filter(user=user, rate__gte=medium)
+        else:
+            list_rate_good = User_Rate.objects.filter(user=user, rate__gte=3)
+        # print('list movieid liked : ')
         list_movie = [rate.movie.movieid for rate in list_rate_good]
         # print(list_movie)
 
@@ -698,33 +837,34 @@ def get_search_value(request):
              
             try:
                 all_sessions = User_Search.objects.all()
-                print('len all_sessions:', len(all_sessions))
-                all_search_value = [session.content for  session in  all_sessions]
+                user_search_sessions = User_Search.objects.filter(user=request.user)
+                recommend_sessions = []
+                for search_session in all_sessions:
+                    if search_session not in user_search_sessions:
+                        recommend_sessions.append(search_session)
+                print(search_session)
+
+                all_search_value = [session.content for  session in  recommend_sessions]
 
                 #search in all_search_value , which the best similarity 
                 sort_search_value = sorted(all_search_value , key = lambda value: jaccard_similarity(content, value)[0])
-                
-                best_similarity_session_content = sort_search_value[-1]
-                jaccard_value = jaccard_similarity(content, best_similarity_session_content)[0]
-                list_key_recommend = jaccard_similarity(content, best_similarity_session_content)[1]
+                print('content giong nhau nhat',sort_search_value[-1])
+                # content giong nhau nhat 
+                content_best_similarity = sort_search_value[-1]
+                print(content_best_similarity.split(","))
+                key_recommend = content_best_similarity.split(",")[-1]
+                print('tu khoa goi y',key_recommend)
+                jaccard_value = jaccard_similarity(content, content_best_similarity)[0]
                 print(jaccard_value)
-                print(list_key_recommend)
+                # print('key recommend here', key_recommend)
                 # if jaccard similarity > 0.5 
-                if jaccard_value > 0.5:
-                    list_key_success = []
-                    for key_recommend in list_key_recommend :
-                        if key_recommend.find(keyup_now) != -1 and len(key_recommend) > len(keyup_now):
-                            list_key_success.append(key_recommend)
-                            print('2')
-                            print('Exactly recommend key :', key_recommend)
-                        
-                    if len(list_key_success) > 0:
-                        #recommend for last search by diffrent user ....
-                        longest_key = max(list_key_success, key=len)
+                # print(keyup_now)
+                if jaccard_value > 0.75 :
+                    if key_recommend.find(keyup_now) != -1 and len(key_recommend) > len(keyup_now):
+                        print('Exactly recommend key :', key_recommend)
                         data['mess'] = 'success'
                         data['check_recommend'] = 'true'
-                        data['key_recommend'] = longest_key
-
+                        data['key_recommend'] = key_recommend
                 else:
                     data['mess'] = 'success'
                     data['check_recommend'] = 'false'
@@ -741,6 +881,7 @@ def get_search_value(request):
                 now_user_session = User_Search.objects.filter(user=user).latest('date_posted')
                 if content.find(now_user_session.content) != -1:
                     now_user_session.content = content
+                    # after search , save... now dont save
                     now_user_session.save()
                 else:
                     new_user_session = User_Search(user=user, content=content)
@@ -797,10 +938,11 @@ def get_data_chart3(request):
         top_movie = sorted(all_movies, key= lambda t: get_all_rates(t))[-10:]
         labels = []
         data = []
-        for movie in top_movie:
+        for movie in top_movie[-5:]:
             labels.append(movie.title)
             data.append(get_all_rates(movie))
         total_rates = User_Rate.objects.all().count()
+        print(total_rates)
         return JsonResponse({'mess':'success', 'labels': labels, 'data': data, 'total_rates':total_rates})
     return JsonResponse({'mess':'error'})
 

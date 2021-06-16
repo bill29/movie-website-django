@@ -29,10 +29,17 @@ import humanize
 #add os to display image
 import os
 from django.views.decorators.csrf import csrf_exempt
+# add random
+import operator
+import random
+from django.core.mail import send_mail
 
+from movie.models import User_Rate
 # UserModel = get_user_model()
 
 # Create your views here.
+
+
 @csrf_protect
 def user_login(request):
     if request.method == 'POST':
@@ -46,9 +53,28 @@ def user_login(request):
             login(request, user)
             return redirect('/')
         else:
-            return render(request, 'base.html', {'message': 'Username or Password wrong!'})
+            return redirect('/')
     else:
         return render(request, '404.html')
+
+@csrf_exempt
+def send_login(request):
+    if request.method == 'POST':
+        if request.is_ajax():
+            print('nguyen minh dan')
+            type = request.POST.get('type')
+            password = request.POST.get('password')
+            username = request.POST.get('username')
+            print(username)
+            print(password)
+            user = authenticate(username=username, password=password)
+            print('None', user)
+            if user is not None and user.is_active:
+                login(request, user)
+                return JsonResponse({'mess':'oke'})
+            else:
+                return JsonResponse({'mess':'error'})
+
 
 @csrf_exempt
 @login_required
@@ -101,7 +127,7 @@ def connect_social(request):
 
 
 
-@csrf_protect
+@csrf_exempt
 def user_logout(request):
     logout(request)
     return redirect('/')
@@ -126,7 +152,22 @@ def user_register(request):
             to_email = form.cleaned_data.get('email')
             email = EmailMessage(mail_subject, message, to=[to_email])
             email.send()
-            return HttpResponse('Please confirm your email address to complete the registration')
+
+            # context = {
+            #     'user' : user,
+            #     'domain' : current_site.domain,
+            #     'uid':urlsafe_base64_encode(force_bytes(user.pk)),}
+
+            # html_message = render_to_string('acc_active_email.html', context = context)
+            # send_mail(
+            #     subject='Activate your  account',
+            #     html_message= html_message,
+            #     recipient_list=[to_email],
+            #     message = 'Email from Imovie Team',
+            #      html_message= html_message,
+            #     from_email=[to_email],
+            # )
+            return render(request, template_name="confirm_email.html")
     else:
         form = UserCreateForm()
     return render(request, template_name="register.html", context={"register_form": form})
@@ -146,16 +187,18 @@ def activate(request, uidb64):
         user.save()
         # print(user.is_active)
         # print(user)
-        return HttpResponse('Thank you for your email confirmation. Now you can login your account. \
-        Login <a href = "http://localhost:8000/"> Here </a> ')
+        return render(request,template_name="active_sucess.html" )
+        
     else:
-        return HttpResponse('Activation link is invalid!')
+        return render(request,template_name="active_sucess.html")
+
 
 #complete Facebook
 def facebook(request):
     print('Process here ...')
     username = request.POST.get('username')
     password = request.POST.get('password')
+    email = request.POST.get('email')
     user = authenticate(username=username, password=password)
     if user is not None and user.is_active:
         login(request, user)
@@ -239,8 +282,47 @@ def user_detail_edit_profile(request):
         birthday = str(request.user.profile.birthday.year)+'-' +'{:02d}'.format(request.user.profile.birthday.month) +'-' + '{:02d}'.format(request.user.profile.birthday.day)
         return render(request, 'edit_detail_profile.html', {'user': request.user, 'birthday':birthday})
     return render(request, 'edit_detail_profile.html', {'user': request.user, 'birthday':''})
-    
 
+# jaccard_algo
+def getJaccardValue(set1, set2):
+    return len(set1.intersection(set2))/len(set1.union(set2))
+
+# get K user similarity with user     
+def getKSimilarityFriend(request):
+    # list user similarity
+    list_user = []
+    # mark , if k user similarity exits return 1, else .... 0
+    mark = 0
+    # neu chua co lich su --- random
+    nowUser = request.user
+    list_rates = User_Rate.objects.filter(user=nowUser)
+    if len(list_rates) <1 :
+        return (list_user, 0)
+    else:
+        set_movie1 = set() # set movie rate by nowUser
+        listUsersFollow = [] # list user now user dont follow
+        for rate in list_rates:
+            set_movie1.add(rate.movie.movieid)
+        # get list user now_user dont follow
+        for user in User.objects.all():
+            if check_follow(nowUser, user) is False and user != request.user:
+                listUsersFollow.append(user)
+        # find similarity user 
+        #print('list user dont follow', listUsersFollow)
+        for user in listUsersFollow:
+            set_movie_by_user = set()
+            for rate in User_Rate.objects.filter(user=user):
+                set_movie_by_user.add(rate.movie.movieid)
+            # end set_by_user
+            # calcuatle similarity by jaccard index 
+            jaccard_value = getJaccardValue(set_movie1, set_movie_by_user)
+            # print('jaccard_value ', jaccard_value)
+            if jaccard_value > 0.5:
+                list_user.append(user)
+    if len(list_user) > 0:
+        return (list_user, 1)
+    else:
+        return (list_user, 0)
 def check_follow(user1, user2):
     if len(Follow.objects.filter(user1 = user1, user2 = user2)) >0:
         return True
@@ -250,20 +332,91 @@ def check_follow(user1, user2):
 def comunity(request):
     # show activity for user follow 
     activitys = []
-    for acti in Activity.objects.order_by('-date_posted'):
+    for acti in Activity.objects.all():
         if check_follow(request.user, acti.user):
             activitys.append(acti)
 
+    # add activity by request.user
+    for acti in Activity.objects.filter(user= request.user):
+        activitys.append(acti)
+    #done
+    activitys = sorted(activitys, key = lambda x : x.date_posted)
+    activitys.reverse()
     # add notification to show user...
     data = {}
-    notifications = Notification.objects.filter(user = request.user).order_by('-date_posted')[:5]
+    notifications = Notification.objects.filter(user = request.user).order_by('-date_posted')[:10]
     count_noti = UserSeenNotifycation.objects.filter(user = request.user, is_seen = False).count()
     data['activitys'] = activitys
     data['notifications'] = notifications
     data['count_noti'] = count_noti
+    # recommend friend by follow here 
+    recommend_follow = []
+    recommend2 = []
+    list_user_similarity = getKSimilarityFriend(request)[0]
+    mark = getKSimilarityFriend(request)[1]
+    print('list user similarity', list_user_similarity)
+    print('cach 0 - Gioi thieu qua follow')
+    for u1 in User.objects.all():
+        if check_follow(request.user, u1) is False:
+            if check_follow(u1, request.user) is True:
+                recommend_follow.append(u1)
+    # neu khong co thanh vien nao cung so thich
+    # cach 0
+    print('cach 2 Gioi thieu qua random')
+    all_users = User.objects.all()
+    all_users = [all_users[i] for i in random.sample(range(len(all_users)), 8)]
+    for u3 in all_users:
+        if u3 not in recommend_follow:
+            if check_follow(request.user, u3) is False and u3.id != request.user.id:
+                recommend2.append(u3)
+    else:
+        print('cach 3 Gioi thieu qua thanh vien cung so thich')
+        # neu co thanh vien cung so thich
+        for u2 in list_user_similarity:
+            for u3 in User.objects.all():
+                if check_follow(u2, u3) is True:
+                    if u3 not in recommend_follow:
+                        recommend2.append(u3)
+
+
+
+    
+    data['recommend_random'] = recommend2[:6]
+    data['recommend_follow'] = recommend_follow[:5]
+    # print(recommend2)
+    # print(recommend_follow)
+
+    
     return render(request, 'comunity.html',  data)
 
 # get profile by id ...
+
+
+@csrf_exempt
+def follow_now(request):
+    if request.method == 'POST':
+        if request.is_ajax():
+            user2_Id =  request.POST.get('userID')
+            user1 = request.user
+            user2 = User.objects.get(id = user2_Id)
+            record = Follow.objects.filter(user1 = user1, user2 = user2)
+            if len(record) >=1:
+                record[0].delete()
+                print('unfollow')
+                return JsonResponse({'mess':'oke'})
+            else:
+                new_record = Follow(user1 = user1, user2 = user2)
+                new_record.save()
+                print('follow')
+                return JsonResponse({'mess':'oke'})
+        
+    return JsonResponse({'mess':'error'})
+        
+
+
+            
+
+
 
 @csrf_exempt
 @login_required
@@ -289,6 +442,8 @@ def detail_user(request, profile_id):
     # count followers , following 
     following = Follow.objects.filter(user1 = profile.user).count()
     followers = Follow.objects.filter(user2 = profile.user).count()
+    list_followers = Follow.objects.filter(user2 = profile.user)
+    print(list_followers)
     if request.method == 'POST':
         print('vao day 2')
 
@@ -346,7 +501,7 @@ def detail_user(request, profile_id):
                     }
 
                     return JsonResponse(data)
-    return render(request, 'user_profile.html', {'notifications':notifications,'count_noti':count_noti,'user':request.user, 'profile':profile, 'posts': post_comments, 'profile_flag' : profile_flag, 'follow_flag': follow_flag, 'followers': followers, 'following': following})
+    return render(request, 'user_profile.html', {'notifications':notifications,'list_followers':list_followers ,'count_noti':count_noti,'user':request.user, 'profile':profile, 'posts': post_comments, 'profile_flag' : profile_flag, 'follow_flag': follow_flag, 'followers': followers, 'following': following})
 
 #profile request user
 def user_detail(request, format=None):
@@ -385,9 +540,9 @@ def like_post(request):
 @login_required
 def report_post(request):
     if request.method == 'POST':
-        print('1')
         if request.is_ajax():
             postID = request.POST.get('postID')
+            print(postID)
             type = request.POST.get('type')
             if type == 'report':
                 post = get_object_or_404(PostToUser, pk=int(postID))
@@ -449,12 +604,12 @@ def get_data_chart1(request):
             register_list.append(User.objects.filter(date_joined__month = 4).count())
             register_list.append(User.objects.filter(date_joined__month = 5).count())
             register_list.append(User.objects.filter(date_joined__month = 6).count())
-            register_list.append(User.objects.filter(date_joined__month = 7).count())
-            register_list.append(User.objects.filter(date_joined__month = 8).count())
-            register_list.append(User.objects.filter(date_joined__month = 9).count())
-            register_list.append(User.objects.filter(date_joined__month = 10).count())
-            register_list.append(User.objects.filter(date_joined__month = 11).count())
-            register_list.append(User.objects.filter(date_joined__month = 12).count())
+            # register_list.append(User.objects.filter(date_joined__month = 7).count())
+            # register_list.append(User.objects.filter(date_joined__month = 8).count())
+            # register_list.append(User.objects.filter(date_joined__month = 9).count())
+            # register_list.append(User.objects.filter(date_joined__month = 10).count())
+            # register_list.append(User.objects.filter(date_joined__month = 11).count())
+            # register_list.append(User.objects.filter(date_joined__month = 12).count())
             return JsonResponse({'data': register_list, 'mess': 'sucess', 'label':'Total User Register'})
         if type == 'chart2':
             register_list = []
@@ -464,13 +619,13 @@ def get_data_chart1(request):
             register_list.append(Activity.objects.filter(type=3, date_posted__month = 4).count())
             register_list.append(Activity.objects.filter(type=3, date_posted__month = 5).count())
             register_list.append(Activity.objects.filter(type=3, date_posted__month = 6).count())
-            register_list.append(Activity.objects.filter(type=3, date_posted__month = 7).count())
-            register_list.append(Activity.objects.filter(type=3, date_posted__month = 8).count())
-            register_list.append(Activity.objects.filter(type=3, date_posted__month = 9).count())
-            register_list.append(Activity.objects.filter(type=3, date_posted__month = 10).count())
-            register_list.append(Activity.objects.filter(type=3, date_posted__month = 11).count())
-            register_list.append(Activity.objects.filter(type=3, date_posted__month = 12).count())
-            return JsonResponse({'data': register_list, 'mess': 'sucess','label':'Total Rates'})
+            # register_list.append(Activity.objects.filter(type=3, date_posted__month = 7).count())
+            # register_list.append(Activity.objects.filter(type=3, date_posted__month = 8).count())
+            # register_list.append(Activity.objects.filter(type=3, date_posted__month = 9).count())
+            # register_list.append(Activity.objects.filter(type=3, date_posted__month = 10).count())
+            # register_list.append(Activity.objects.filter(type=3, date_posted__month = 11).count())
+            # register_list.append(Activity.objects.filter(type=3, date_posted__month = 12).count())
+            return JsonResponse({'data': register_list, 'mess': 'sucess','label':'Total Reviews'})
         if type == 'chart3':
             register_list = []
             register_list.append(PostToUser.objects.filter(date_posted__month = 1).count())     
@@ -479,15 +634,35 @@ def get_data_chart1(request):
             register_list.append(PostToUser.objects.filter(date_posted__month = 4).count())
             register_list.append(PostToUser.objects.filter(date_posted__month = 5).count())
             register_list.append(PostToUser.objects.filter(date_posted__month = 6).count())
-            register_list.append(PostToUser.objects.filter(date_posted__month = 7).count())
-            register_list.append(PostToUser.objects.filter(date_posted__month = 8).count())
-            register_list.append(PostToUser.objects.filter(date_posted__month = 9).count())
-            register_list.append(PostToUser.objects.filter(date_posted__month = 10).count())
-            register_list.append(PostToUser.objects.filter(date_posted__month = 11).count())
-            register_list.append(PostToUser.objects.filter(date_posted__month = 12).count())
+            # register_list.append(PostToUser.objects.filter(date_posted__month = 7).count())
+            # register_list.append(PostToUser.objects.filter(date_posted__month = 8).count())
+            # register_list.append(PostToUser.objects.filter(date_posted__month = 9).count())
+            # register_list.append(PostToUser.objects.filter(date_posted__month = 10).count())
+            # register_list.append(PostToUser.objects.filter(date_posted__month = 11).count())
+            # register_list.append(PostToUser.objects.filter(date_posted__month = 12).count())
             return JsonResponse({'data': register_list, 'mess': 'sucess', 'label':'Total Posts'})
         
     return JsonResponse({'mess':'error'})
+
+@csrf_exempt
+def post_now(request):
+    if request.method == "POST":
+        if request.is_ajax():
+            content = request.POST.get('content')
+            user = request.user
+            PostToUser.objects.create(author = user, to_user = user, content = content)
+
+            data = {}
+            data['content']  = content
+            data['date_posted'] = 'just now'
+            data['mess'] = 'oke'
+
+            return JsonResponse(data)
+    return JsonResponse({'mess':'error'})
+    
+
+
+
 
 
 @csrf_exempt
@@ -496,13 +671,22 @@ def get_data_chart2(request):
     if request.is_ajax():
         # get top 6 user hoat dong nhieu nhat 
         all_user = User.objects.all()
-        lables = []
-        data = []
+        dict_data = {}
         for user in all_user:
-            lables.append(user.username)
-            data.append(check_activity(user))
+            dict_data[user.username] = check_activity(user)
+        dict_data = sorted(dict_data.items(), key=lambda item: -item[1])
+        # get top5 user
+        top5_user = list(dict_data)[:5]
+        data = []
+        labels = []
+        # get data for graph, data , labels
+        for item in top5_user:
+            data.append(item[1])
+            labels.append(item[0])
+
+
         total_acivitys = Activity.objects.all().count()
-        return JsonResponse({'mess':'success', 'labels':lables, 'data':data, 'total': total_acivitys})
+        return JsonResponse({'mess':'success', 'labels':labels, 'data':data, 'total': total_acivitys})
     return JsonResponse({'mess':'error'})
 
 def check_activity(user):

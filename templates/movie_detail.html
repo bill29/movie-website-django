@@ -110,81 +110,83 @@
                 <div class="col-md-8">
                     <div style="padding: 20px;">
                         <h1>{{object.title}}</h1>
-                        <div class="rating">
-                            <input type="radio" name="rating" value="5" id="5">
-                            <label for="5">☆</label>
-                            <input type="radio" name="rating" value="4" id="4">
-                            <label for="4">☆</label>
-                            <input type="radio" name="rating" value="3" id="3">
-                            <label for="3">☆</label>
-                            <input type="radio" name="rating" value="2" id="2">
-                            <label for="2">☆</label>
-                            <input type="radio" name="rating" value="1" id="1">
-                            <label for="1">☆</label>
-                            <!-- rating function js --->
-                            <script>
-                                var rated = {{ object.rate }} ;
-                                var movieid = '{{object.movieid}}';
-                                console.log(movieid);
-                                var username = '{{ user.username }}';
-                                console.log(username);
-                                user_rate_movie = {{ rate_score }};
-                                if(user_rate_movie==0){
-                                    var stars = Math.floor(rated/2);
-                                    input_value = '#' + stars.toString();
-                                    console.log(input_value);
-                                    $(input_value).attr('checked', 'checked');
-                                }
-                                else{
-                                    input_value = '#' + user_rate_movie.toString();
-                                    console.log(input_value);
-                                    $(input_value).attr('checked', 'checked');
-                                }
+                        {% if request.user.is_authenticated %}
+                            <div class="rating">
+                                <input type="radio" name="rating" value="5" id="5">
+                                <label for="5">☆</label>
+                                <input type="radio" name="rating" value="4" id="4">
+                                <label for="4">☆</label>
+                                <input type="radio" name="rating" value="3" id="3">
+                                <label for="3">☆</label>
+                                <input type="radio" name="rating" value="2" id="2">
+                                <label for="2">☆</label>
+                                <input type="radio" name="rating" value="1" id="1">
+                                <label for="1">☆</label>
+                                <!-- rating function js --->
+                                    <script>
+                                        var rated = {{ object.rate }} ;
+                                        var movieid = '{{object.movieid}}';
+                                        console.log(movieid);
+                                        var username = '{{ user.username }}';
+                                        console.log(username);
+                                        user_rate_movie = {{ rate_score }};
+                                        if(user_rate_movie==0){
+                                            var stars = Math.floor(rated/2);
+                                            input_value = '#' + stars.toString();
+                                            console.log(input_value);
+                                            $(input_value).attr('checked', 'checked');
+                                        }
+                                        else{
+                                            input_value = '#' + user_rate_movie.toString();
+                                            console.log(input_value);
+                                            $(input_value).attr('checked', 'checked');
+                                        }
 
-                                $("input[name='rating']").click(function() {
-                                    var radioValue = $("input[name='rating']:checked").val();
-                                    console.log(radioValue);
-                                    if (radioValue) {
-                                        console.log('send mess !');
-                                        $.ajax({
-                                        url : "{% url 'rate-movie' %}",
-                                        type: 'POST',
-                                        datatype: 'json',
-                                        processData: "application/json",
-                                        data: {
-                                        movieid: movieid,
-                                        type: 'rate',
-                                        username : username,
-                                        rate_score : radioValue,
-                                            },
-                                            //beforeSend:function (xhr,settings) {
-                                            //console.log("{{ csrf_token }}");
-                                            //xhr.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
-                                            //},
-                                            }).done(function (data) {
-                                            if (data.type == 'error') {
-                                                alert('erorr !');
-                                                Swal.fire('Any fool can use a computer')
-                                                Swal.fire({
-                                                    icon: 'error',
-                                                    title: 'Oops...',
-                                                    text: 'Something went wrong!',
-                                                    footer: '<a href>Why do I have this issue?</a>'
-                                                })
-                                            } else {
-                                                Swal.fire(
-                                                    'Good job!',
-                                                    'You rated this movie!',
-                                                    'success'
-                                                );
-                                                console.log(data);
+                                        $("input[name='rating']").click(function() {
+                                            var radioValue = $("input[name='rating']:checked").val();
+                                            console.log(radioValue);
+                                            if (radioValue) {
+                                                console.log('send mess !');
+                                                $.ajax({
+                                                url : "{% url 'rate-movie' %}",
+                                                type: 'POST',
+                                                datatype: 'json',
+                                                processData: "application/json",
+                                                data: {
+                                                movieid: movieid,
+                                                type: 'rate',
+                                                username : username,
+                                                rate_score : radioValue,
+                                                    },
+                                                    //beforeSend:function (xhr,settings) {
+                                                    //console.log("{{ csrf_token }}");
+                                                    //xhr.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
+                                                    //},
+                                                    }).done(function (data) {
+                                                    if (data.type == 'error') {
+                                                        alert('erorr !');
+                                                        Swal.fire('Any fool can use a computer')
+                                                        Swal.fire({
+                                                            icon: 'error',
+                                                            title: 'Oops...',
+                                                            text: 'Something went wrong!',
+                                                            footer: '<a href>Why do I have this issue?</a>'
+                                                        })
+                                                    } else {
+                                                        Swal.fire(
+                                                            'Good job!',
+                                                            'You rated this movie!',
+                                                            'success'
+                                                        );
+                                                        console.log(data);
+                                                    }
+                                                });
                                             }
                                         });
-                                    }
-                                });
 
-                            </script>
-                        </div>
+                                    </script>
+                            </div>
+                        {% endif %}
                         <!-- add seen , andd expect --->
                         {% if  user.is_authenticated %}
                             <button class="btn btn-warning" id="seen">Have seen</button>
@@ -309,7 +311,7 @@
                             {% for item in items %}
                                 <li><a href="/movie/actor_detail/{{ item.actorid }}" class="actor-profile-item">
                                     <div class="actor-image"
-                                        style="background-image:url('{{item.photo}}')"></div>
+                                        style="background-image:url('{{item.photo}}')" ></div>
                                     <div class="actor-name">{{item.get_simple_name}}</div>
                                 </a></li>
                             {% endfor %}
@@ -386,77 +388,130 @@
                         
                         <!-- end  detail actor here -->
                         <!-- add tag movie here -->
-                        <h4>Your Tag: </h4>
-                        <div class="form-group has-success has-feedback">
-                            <hr>
-                            <label class="control-label" style="color: black" ></label>
-                            <div class="input-group" style ="width:30% " >
-                                <label for="inputGroupSuccess1"></label>
-                                <input id= "nameTag" type="text" class="form-control" placeholder ="add tag for {{object.title}}.." aria-describedby="inputGroupSuccess1Status">
-                                <span onclick="addTag()" style="cursor: pointer" class="input-group-addon">+</span>
-                            </div>
-                        </div>
-                        <!-- function add tag here -->
+                        {% if request.user.is_authenticated %}
+                            <h4>Your Tag: </h4>
+                            <div class="form-group has-success has-feedback">
+                                    <label class="control-label" style="color: black" ></label>
+                                    <div class="input-group" style ="width:35%" >
+                                        <label for="inputGroupSuccess1"></label>
+                                        <input id= "nameTag" type="text" class="form-control" placeholder ="add tag for movie ..." aria-describedby="inputGroupSuccess1Status">
+                                        <span onclick="addTag(1)" style="cursor: pointer" class="input-group-addon">+</span>
+                                    </div>
+                                </div>
+                            <!-- function add tag here -->
                             <div class="user_tag_here" id="list_actor_carousel" style="padding-left: 0px;">
-                            {% for user_tag in users_tags %}
-                                <li style ="width:30% "><div class="input-group" >
-                                    <span  style="cursor: pointer; background-color: #def0d8" class="input-group-addon">x{{user_tag.count_tag}}</span>
-                                    <button class="form-control" id="inputGroupSuccess1" aria-describedby="inputGroupSuccess1Status">{{user_tag.tags}}</button>
-                                    <span  style="cursor: pointer" class="input-group-addon">-</span>
+                            {% for tag in users_tags %} 
+                                <li style="max-width:30%" ><div class="input-group" id="{{tag.id}}" >
+                                    <span  style="cursor: pointer; background-color: #def0d8" class="input-group-addon">x{{tag.count_tag}}</span>
+                                    <button class="form-control" id="inputGroupSuccess1" aria-describedby="inputGroupSuccess1Status">{{tag.tags}}</button>
+                                    <span onclick="deleteTag({{tag.id}})"  style="cursor: pointer" class="input-group-addon">-</span>
                                 </div></li>
                             {% endfor %}
                             </div>
-                        <!-- function add tag by user here -->
-                        <script>
-                            function addTag(){
-                                var movieid = '{{object.movieid}}';
-                                var username = '{{ user.username }}';
-                                var nameTag = $('#nameTag').val();
-                                console.log(nameTag);
-                                //send ajax
-                                $.ajax({
-                                    url : "{% url 'add-tag' %}",
-                                    type: 'POST',
-                                    datatype: 'json',
-                                    processData: "application/json",
-                                    data: {
-                                    movieid: movieid,
-                                    type: 'add-tag',
-                                    username : username,
-                                    tag : nameTag
-                                        }
-                                        }).done(function (data) {
-                                    if (data.mess == 'error') {
-                                        Swal.fire('You have tagged this movie already')
-                                    } else {
-                                        $('#nameTag').val('');
-                                        $('.user_tag_here').prepend(
-                                            '<li style ="width:30% "><div class="input-group" >' +
-                                    '<span  style="cursor: pointer; background-color: #def0d8" class="input-group-addon">x' +data.count + '</span>'+
-                                    '<button class="form-control" id="inputGroupSuccess1" aria-describedby="inputGroupSuccess1Status">' +data.tags +'</button>'+
-                                    '<span  style="cursor: pointer" class="input-group-addon">...</span>'+
-                                    '</div></li>'
-                                        )
+                            <!-- function add tag by user here -->
+                            <script>
+                                function addTag(key){
+                                    var movieid = '{{object.movieid}}';
+                                    var username = '{{ user.username }}';
+                                    if(key==1){
+                                        var nameTag = $('#nameTag').val();
                                     }
-                                })
-                            };
+                                    else{
+                                        var nameTag = key;
+                                    }
+                                    console.log(nameTag);
+                                    //send ajax
+                                    $.ajax({
+                                        url : "{% url 'add-tag' %}",
+                                        type: 'POST',
+                                        datatype: 'json',
+                                        processData: "application/json",
+                                        data: {
+                                        movieid: movieid,
+                                        type: 'add-tag',
+                                        username : username,
+                                        tag : nameTag
+                                            }
+                                            }).done(function (data) {
+                                        if (data.mess == 'error') {
+                                            Swal.fire('You have tagged this movie already')
+                                        } else {
+                                            //add count if have tag in comunitys 
+                                            $('#nameTag').val('');
+                                            $('.user_tag_here').prepend(
+                                                                '<li style="max-width:30%" ><div class="input-group" id="' + data.id + '" >' +
+                                                            '<span  style="cursor: pointer; background-color: #def0d8" class="input-group-addon">x' + data.count + '</span>'+
+                                                            '<button class="form-control" id="inputGroupSuccess1" aria-describedby="inputGroupSuccess1Status">' + data.tags + '</button>'+
+                                                            '<span onclick="deleteTag(' + data.id + ')"  style="cursor: pointer" class="input-group-addon">-</span>'+
+                                                        '</div></li>'
+                                                        );
+                                            // add comunity tags 
+                                            if(data.newTag == 1){
+                                                // add comunity tagname and count 
+                                                $('.comunity_tags_here').prepend(
+                                                    '<li style ="width:30% "><div class="input-group" id="tag'+ data.tags + '" >' +
+                                                    '<span  style="cursor: pointer; background-color: #def0d8" class="input-group-addon">x' + data.new_count + '</span>'+
+                                                    '<button class="form-control" id="inputGroupSuccess1" aria-describedby="inputGroupSuccess1Status">' +data.tags +'</button>'+
+                                                    '<span style="cursor: pointer" class="input-group-addon">+</span>'+
+                                                    '</div></li>'
+                                                            );
+                                            }
+                                            else{
+                                                if(data.newTag==0){
+                                                    //add count to comunity tag if tagName exits 
+                                                    var id_count = '#x' + data.tags ;
+                                                    var count = 'x' + data.count.toString();
+                                                    console.log(count);
+                                                    console.log(id_count);
+                                                    $(id_count).text(count);
+                                                }
+                                            } 
+                                        }
+                                    })
+                                };
+                                function deleteTag(tagID){
+                                    var id = '#'+ tagID.toString();
+                                    $(id).hide();
+                                     $.ajax({
+                                        url : "{% url 'delete-tag' %}",
+                                        type: 'POST',
+                                        datatype: 'json',
+                                        processData: "application/json",
+                                        data: {
+                                        type: 'delete-tag',
+                                        tagID : tagID,
+                                            }
+                                            }).done(function (data) {
+                                                console.log(data);
+                                                if(data.deleteComunity == 1){
+                                                    // clear comunity
+                                                    $(data.id_group).hide();
+                                                }
+                                                else{
+                                                    if(data.deleteComunity == 0){
+                                                        $(data.id_count).text(data.count);
+                                                    }
+                                                }
+                                        
+                                                 
+                                            })
+                                 }
 
-                        </script>
-                        <!-- end tag by user function -->
+                            </script>
+                            <!-- end tag by user function -->
 
-
-                        <h4>Tags Comunity : </h4>
-                        <div id="list_actor_carousel" style="padding-left: 0px;">
-                            {% for tagname,count in dict_tag.items %}
-                                <li style ="width:30%; height : 70% "><div class="input-group" >
-                                    <span  style="cursor: pointer; background-color:#def0d8" class="input-group-addon">x{{count}}</span>
-                                    <button class="form-control" id="inputGroupSuccess1" aria-describedby="inputGroupSuccess1Status"> {{tagname}}</button>
-                                    <span style="cursor: pointer" class="input-group-addon">+</span>
-                                    
-                                </div></li>
-                            {% endfor %}
-                        </div>
-                        <br>
+                            <h4>Tags Comunity : </h4>
+                            <div class="comunity_tags_here" id="list_actor_carousel" style="padding-left: 0px;">
+                                {% for tagName, countTag in comunity_tags.items %}
+                                    <li style ="width:30%; height : 70% "><div class="input-group" id="tag{{tagName}}" >
+                                        <span id="x{{tagName}}" style="cursor: pointer; background-color:#def0d8" class="input-group-addon">x{{countTag}}</span>
+                                        <button class="form-control" id="inputGroupSuccess1" aria-describedby="inputGroupSuccess1Status"> {{tagName}}</button>
+                                        <span onclick="addTag('{{tagName}}')" style="cursor: pointer" class="input-group-addon">+</span>
+                                    </div></li>
+                                {% endfor %}
+                            </div>
+                            <br>
+                        {% endif %}
 
 
                         <h4>Review for {{object.title}}</h4>
@@ -484,7 +539,7 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="rating-block">
-                                        <h4>Average user rating</h4>
+                                        <h5>Average user rating</h5>
                                         <!-- rating averange  movie user -->
                                         <h2 class="bold padding-bottom-7" id="rate_all_for_movie">  <small>/ 5</small></h2>
                                         {% if rate_average == 5  %}
@@ -577,7 +632,7 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <h4>Rating breakdown</h4>
+                                    <h5>Rating breakdown</h5>
                                     <div class="pull-left">
                                         <div class="pull-left" style="width:35px; line-height:1;">
                                             <div style="height:9px; margin:5px 0;">5 <span class="glyphicon glyphicon-star"></span></div>
@@ -660,7 +715,11 @@
                                         {% for review in reviews %}
                                             <div class="col-md-3">
                                                 <img src="{{review.user.profile.profile_picture.url}}" width ="60px" height ="60px" class="img-rounded">
-                                                <div class="review-block-name"><a href="#">{{review.user.username}}</a></div>
+                                                {% if request.user.is_authenticated %}
+                                                    <div class="review-block-name"><a href="{{review.user.profile.get_absolute_url}}">{{review.user.username}}</a></div>
+                                                {% else %}
+                                                    <div class="review-block-name"><a>{{review.user.username}}</a></div>
+                                                {% endif %}
                                                 <div class="review-block-date">{{review.get_date}}</div>
                                             </div>
                                             <div class="col-md-9">
@@ -752,46 +811,48 @@
 
                                                     <div class="review-block-description">{{review.review}}
                                                 </div>
-                                                <div class="media-feed-control">
-                                                    <a href="" id="likeButton" style="color:black">
-                                                        <input type="hidden" name="likePostID" value="{{ review.id }}">
-                                                        {% if  review.total_likes > 0 %}
-                                                                <i class="batch-icon batch-icon-heart-full" ></i> Like <span id="count-likes{{ review.id }}"> ({{review.total_likes}}) </span>
-                                                        {% else %}
-                                                            <i class="batch-icon batch-icon-heart-full" ></i> Like <span id="count-likes{{ review.id }}"></span>
-                                                        {% endif %}
-                                                    </a>
-                                                    <a onclick="show_block_reply({{review.id}})"  style="color:black" href="#">
-                                                        {% if review.total_reply > 0  %}
-                                                            <i class="batch-icon batch-icon-speech-bubble-left-tip"></i> Comment <span id="count-comments{{ review.id }}" >({{review.total_reply}}) </span>
-                                                        {% else %}
-                                                            <i class="batch-icon batch-icon-speech-bubble-left-tip"></i> Comment <span id="count-comments{{ review.id }}"> </span>
-                                                        {% endif %}
-                                                    </a>
-                                                </div>
-                                                <div hidden class="media-body-reply-block" id="block-reply-{{review.id}}" >
-                                                    <div class="media mt-4" id="list_reply_review">
-                                                        {% for reply in review.get_all_reply %}
-                                                            <div class="media-body" style="padding-left: 10px ; border: 5px">
-                                                                <div class="media-title mt-0 mb-1">
-                                                                    <a href="{{ reply.user.profile.get_absolute_url }}">{{ reply.user.username }}</a> <small> just now</small>
-                                                                </div>
-                                                                <div class ="reply-content" >
-                                                                    {{reply.content}}
-                                                                </div>
-                                                            </div>
-                                                        {% endfor %}
+                                                {% if request.user.is_authenticated %}
+                                                    <div class="media-feed-control">
+                                                        <a href="" id="likeButton" style="color:black">
+                                                            <input type="hidden" name="likePostID" value="{{ review.id }}">
+                                                            {% if  review.total_likes > 0 %}
+                                                                    <i class="batch-icon batch-icon-heart-full" ></i> Like <span id="count-likes{{ review.id }}"> ({{review.total_likes}}) </span>
+                                                            {% else %}
+                                                                <i class="batch-icon batch-icon-heart-full" ></i> Like <span id="count-likes{{ review.id }}"></span>
+                                                            {% endif %}
+                                                        </a>
+                                                        <a onclick="show_block_reply({{review.id}})"  style="color:black" href="#">
+                                                            {% if review.total_reply > 0  %}
+                                                                <i class="batch-icon batch-icon-speech-bubble-left-tip"></i> Comment <span id="count-comments{{ review.id }}" >({{review.total_reply}}) </span>
+                                                            {% else %}
+                                                                <i class="batch-icon batch-icon-speech-bubble-left-tip"></i> Comment <span id="count-comments{{ review.id }}"> </span>
+                                                            {% endif %}
+                                                        </a>
                                                     </div>
+                                                    <div hidden class="media-body-reply-block" id="block-reply-{{review.id}}" >
+                                                        <div class="media mt-4" id="list_reply_review{{review.id}}">
+                                                            {% for reply in review.get_all_reply %}
+                                                                <div class="media-body" style="padding-left: 10px ; border: 5px">
+                                                                    <div class="media-title mt-0 mb-1">
+                                                                        <a href="{{ reply.user.profile.get_absolute_url }}">{{ reply.user.username }}</a> <small> just now</small>
+                                                                    </div>
+                                                                    <div class ="reply-content" >
+                                                                        {{reply.content}}
+                                                                    </div>
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                        
                                                     
-                                                   
-                                                    <div class="comment-reply-block mt-4">
-                                                        <form method="POST" class="form-reply" enctype="multipart/form-data">
-                                                            <input type="hidden" class="replyID" name="postID" value="{{ review.id }}">
-                                                            <input style="height: 50%"  class="form-control comment-reply-textarea" name="reply-content" rows="2" placeholder="reply review here..."> </input>
-                                                            <button style="float: right;"  type="submit" class="rrSend"> Reply </button>
-                                                        </form>
+                                                        <div class="comment-reply-block mt-4">
+                                                            <form method="POST" class="form-reply" enctype="multipart/form-data">
+                                                                <input type="hidden" class="replyID" name="postID" value="{{ review.id }}">
+                                                                <input style="height: 50%"  class="form-control comment-reply-textarea" name="reply-content" rows="2" placeholder="reply review here..."> </input>
+                                                                <button style="float: right;"  type="submit" class="rrSend"> Reply </button>
+                                                            </form>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                {% endif %}
                                             </div>
                                             <div>
                                             </div>
@@ -845,182 +906,197 @@
             </script>
         {% endif %}
     </div>
-
-
-                
-
-       
-
-    
 <script>
 
-function get_breaking_rate(){
-    var movieid = '{{object.movieid}}';
-    console.log(movieid);
-    $.ajax({
-                url: "{% url 'get_data_rate' %}",
-                type: 'POST',
-                datatype: 'json',
-                processData: "application/json",
-                data: {
-                    movieid: movieid,
-                },
-                
-            }).done(function (data){
-                console.log(data);
-                $('#count_5_star').text(data.count_rate_5);
-                var count_rate_5_percent = data.count_rate_5_percent;
-                var count_rate_5_percent_width = count_rate_5_percent + '%';
-                console.log(count_rate_5_percent_width); 
-                $('#count_rate_sum_5').css("width", count_rate_5_percent_width);
-
-                $('#count_4_star').text(data.count_rate_4);
-                var count_rate_4_percent = data.count_rate_4_percent;
-                var count_rate_4_percent_width = count_rate_4_percent + '%';
-                console.log(count_rate_4_percent_width); 
-                $('#count_rate_sum_4').css("width", count_rate_4_percent_width);
-
-                $('#count_3_star').text(data.count_rate_3);
-                var count_rate_3_percent = data.count_rate_3_percent;
-                var count_rate_3_percent_width = count_rate_3_percent + '%';
-                console.log(count_rate_3_percent_width); 
-                $('#count_rate_sum_3').css("width", count_rate_3_percent_width);
-
-                $('#count_2_star').text(data.count_rate_2);
-                var count_rate_2_percent = data.count_rate_2_percent;
-                var count_rate_2_percent_width = count_rate_2_percent + '%';
-                console.log(count_rate_2_percent_width); 
-
-                $('#count_rate_sum_2').css("width", count_rate_2_percent_width);
-
-                $('#count_1_star').text(data.count_rate_1);
-                var count_rate_1_percent = data.count_rate_1_percent;
-                var count_rate_1_percent_width = count_rate_1_percent + '%';
-                console.log(count_rate_1_percent_width); 
-
-                $('#count_rate_sum_1').css("width", count_rate_1_percent_width);
-
-                $('#rate_all_for_movie').text(data.rate_all_for_movie +'/5');
-
-
-            });
-};
-
-get_breaking_rate();
-
-
-function show_block_reply(post_id){
-            event.preventDefault();
-            var id = '#block-reply-' + post_id;
-            $(id).toggle();
-        }
-
-$(document).on('submit', '.form-reply', function (event){
-                event.preventDefault();
-                //remember the form element
-                var $form = $(this);
-
-                // get dom by name
-                var $content = $form.find("input[name='reply-content']");
-                // get dome by id
-                var $postID = $form.find(".postID");
-
-                var content =  $form.find("input[name='reply-content']").val();
-                var postID =   $form.find("input[name='postID']").val();
-
-                console.log(content);
-                console.log(postID);
-
-                // now do ajax
-                $.ajax({
-                url: "{% url 'reply-review' %}",
-                type: 'POST',
-                datatype: 'json',
-                processData: "application/json",
-                data: {
-                    content: content,
-                    postID: postID,
-                    type: 'reply',
-                },
-                
-            }).done(function (data){
-                $content.val('');
-                console.log(data);
-                $('#list_reply_review').prepend(
-
-                    '<div class="media-body" style="padding-left: 10px" >'+
-                    '<div class="media-title mt-0 mb-1">' +
-                    '<a href="' + data.send_user_url + '">'+ data.send_user + '</a> <small> just now</small>'+
-                    '</div>' +
-                    '<div class ="reply-content" >'+
-                    data.content +
-                    '</div>' +
-                    '</div>')
-                    var countCommentID = '#count-comments' + data.review_id;
-                    $(countCommentID).html('(' +data.count_reply +')');
-
-                });
-            });
-
-function review(){
-        var content = $('#review-textarea').val();
+    function get_breaking_rate(){
         var movieid = '{{object.movieid}}';
-        var username = '{{ user.username }}';
-            console.log(content);
-
-            if (content == '') {
-                Swal.fire('Comments cannot be empty');
-                return
-            }
-            $.ajax({
-                type: "POST",
-                // bo sung dau gach cheo moi duoc
-                url: "{% url 'review-movie' %}",
-                data: {content: content, type : 'review', movieid: movieid, 'username':username},
-                processData: "application/json",
-                dataType: "json",
-
-            }).done(function (data) {
-                console.log(data);
-                location.reload();
-
-            });
-
-        };
-$(document).on('click', '#likeButton', function (event) {
-                event.preventDefault();
-                var postID  = $(this).find("input[name='likePostID']").val();
-                var likeID = '#count-likes' + postID
-
-                $.ajax({
-                    url : "{% url 'like-review'%}",
+        console.log(movieid);
+        $.ajax({
+                    url: "{% url 'get_data_rate' %}",
                     type: 'POST',
                     datatype: 'json',
                     processData: "application/json",
                     data: {
-                    postID: postID,
-                    type: 'like',
-                    status : 'True',
-                },
-            }).done(function (data) {
-                    if(data.type==-1){
-                        alert('erorr !');
+                        movieid: movieid,
+                    },
+                    
+                }).done(function (data){
+                    console.log(data.mess);
+                    if(data.mess=='oke'){
+                        $('#count_5_star').text(data.count_rate_5);
+                        var count_rate_5_percent = data.count_rate_5_percent;
+                        var count_rate_5_percent_width = count_rate_5_percent + '%';
+                        console.log(count_rate_5_percent_width); 
+                        $('#count_rate_sum_5').css("width", count_rate_5_percent_width);
+
+                        $('#count_4_star').text(data.count_rate_4);
+                        var count_rate_4_percent = data.count_rate_4_percent;
+                        var count_rate_4_percent_width = count_rate_4_percent + '%';
+                        console.log(count_rate_4_percent_width); 
+                        $('#count_rate_sum_4').css("width", count_rate_4_percent_width);
+
+                        $('#count_3_star').text(data.count_rate_3);
+                        var count_rate_3_percent = data.count_rate_3_percent;
+                        var count_rate_3_percent_width = count_rate_3_percent + '%';
+                        console.log(count_rate_3_percent_width); 
+                        $('#count_rate_sum_3').css("width", count_rate_3_percent_width);
+
+                        $('#count_2_star').text(data.count_rate_2);
+                        var count_rate_2_percent = data.count_rate_2_percent;
+                        var count_rate_2_percent_width = count_rate_2_percent + '%';
+                        console.log(count_rate_2_percent_width); 
+
+                        $('#count_rate_sum_2').css("width", count_rate_2_percent_width);
+
+                        $('#count_1_star').text(data.count_rate_1);
+                        var count_rate_1_percent = data.count_rate_1_percent;
+                        var count_rate_1_percent_width = count_rate_1_percent + '%';
+                        console.log(count_rate_1_percent_width); 
+
+                        $('#count_rate_sum_1').css("width", count_rate_1_percent_width);
+
+                        $('#rate_all_for_movie').text(data.rate_all_for_movie +'/5');
+
                     }
-                    else {
-                        // why with 1 id , count not run !!
-                        console.log(data.count_likes);
-                        if(data.count_likes == 0){
-                            $(likeID).text('');
-                        }
-                        else{
-                            $(likeID).text('('+data.count_likes+')');
-                        }
+                    else{
+                        console.log('heelo world');
+                        $('#count_1_star').text(0);
+                        $('#count_2_star').text(0);
+                        $('#count_3_star').text(0);
+                        $('#count_4_star').text(0);
+                        $('#count_5_star').text(0);
+
+                        $('#count_rate_sum_5').css("width", "0%");
+                        $('#count_rate_sum_4').css("width", "0%");
+                        $('#count_rate_sum_3').css("width", "0%");
+                        $('#count_rate_sum_2').css("width", "0%");
+                        $('#count_rate_sum_1').css("width", "0%");
+                        $('#rate_all_for_movie').text('0/0');
+
                     }
+                    
+
+                
 
 
                 });
-});
+    };
 
+    get_breaking_rate();
+
+
+    function show_block_reply(post_id){
+                event.preventDefault();
+                var id = '#block-reply-' + post_id;
+                $(id).toggle();
+            }
+
+    $(document).on('submit', '.form-reply', function (event){
+                    event.preventDefault();
+                    //remember the form element
+                    var $form = $(this);
+
+                    // get dom by name
+                    var $content = $form.find("input[name='reply-content']");
+                    // get dome by id
+                    var $postID = $form.find(".postID");
+
+                    var content =  $form.find("input[name='reply-content']").val();
+                    var postID =   $form.find("input[name='postID']").val();
+
+                    console.log(content);
+                    console.log(postID);
+
+                    // now do ajax
+                    $.ajax({
+                    url: "{% url 'reply-review' %}",
+                    type: 'POST',
+                    datatype: 'json',
+                    processData: "application/json",
+                    data: {
+                        content: content,
+                        postID: postID,
+                        type: 'reply',
+                    },
+                    
+                }).done(function (data){
+                    $content.val('');
+                    console.log(data);
+                    var id = '#list_reply_review' + data.review_id;
+                    $(id).prepend(
+
+                        '<div class="media-body" style="padding-left: 10px" >'+
+                        '<div class="media-title mt-0 mb-1">' +
+                        '<a href="' + data.send_user_url + '">'+ data.send_user + '</a> <small> just now</small>'+
+                        '</div>' +
+                        '<div class ="reply-content" >'+
+                        data.content +
+                        '</div>' +
+                        '</div>')
+                        var countCommentID = '#count-comments' + data.review_id;
+                        $(countCommentID).html('(' +data.count_reply +')');
+
+                    });
+                });
+
+    function review(){
+            var content = $('#review-textarea').val();
+            var movieid = '{{object.movieid}}';
+            var username = '{{ user.username }}';
+                console.log(content);
+
+                if (content == '') {
+                    Swal.fire('Comments cannot be empty');
+                    return
+                }
+                $.ajax({
+                    type: "POST",
+                    // bo sung dau gach cheo moi duoc
+                    url: "{% url 'review-movie' %}",
+                    data: {content: content, type : 'review', movieid: movieid, 'username':username},
+                    processData: "application/json",
+                    dataType: "json",
+
+                }).done(function (data) {
+                    console.log(data);
+                    location.reload();
+
+                });
+
+            };
+    $(document).on('click', '#likeButton', function (event) {
+                    event.preventDefault();
+                    var postID  = $(this).find("input[name='likePostID']").val();
+                    var likeID = '#count-likes' + postID
+
+                    $.ajax({
+                        url : "{% url 'like-review'%}",
+                        type: 'POST',
+                        datatype: 'json',
+                        processData: "application/json",
+                        data: {
+                        postID: postID,
+                        type: 'like',
+                        status : 'True',
+                    },
+                }).done(function (data) {
+                        if(data.type==-1){
+                            alert('erorr !');
+                        }
+                        else {
+                            // why with 1 id , count not run !!
+                            console.log(data.count_likes);
+                            if(data.count_likes == 0){
+                                $(likeID).text('');
+                            }
+                            else{
+                                $(likeID).text('('+data.count_likes+')');
+                            }
+                        }
+
+
+                    });
+    });
 
 </script>
 <script type="text/javascript">

@@ -9,11 +9,15 @@ urlpatterns = [
     url(r'^logout/', views.user_logout, name='logout'),
     url(r'^register/', views.user_register, name='register'),
     url(r'^facebook/', views.facebook, name='facebook'),
+
+    url('sendLoginAPI/', views.send_login, name='send-login'),
+
     
     path('password_reset/', auth_views.PasswordResetView.as_view(template_name='password_reset_form.html'), name='password_reset'),
     path('password_reset/done', auth_views.PasswordResetDoneView.as_view(template_name='password_reset_done.html') ,name='password_reset_done'),
     path('password_reset/<uidb64>/<token>', auth_views.PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html') ,name='password_reset_confirm'),
-    path('password_reset/reset/complete', auth_views.PasswordResetCompleteView.as_view(template_name= "templates/password_reset_complete.html") ,name='password_reset_complete'),
+    
+    path('password_reset/complete', auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html') ,name='password_reset_complete'),
     
      #change password
      path('change_password', views.change_password, name='change-password'),
@@ -24,7 +28,7 @@ urlpatterns = [
     path('social/', views.connect_social, name='connect_social'),
     #add comunity page
 
-
+    path('postnow/', views.post_now, name='postnow'),
     path('comunity/', views.comunity, name='comunity'),
 
     path('detail/<int:profile_id>/', views.detail_user, name='detail-user'),
@@ -36,6 +40,9 @@ urlpatterns = [
     path('reportPost/', views.report_post, name='report-post'),
 
     path('follow/', views.follow, name='follow'),
+    path('APIfollowNow/', views.follow_now, name='follow-now'),
+
+
 
     path('seen-noti/', views.seen_noti, name='seen-noti'),
 

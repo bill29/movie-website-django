@@ -16,7 +16,7 @@ def index(request):
     movie_dict = search_index.data_in_memory['movie_dict']
     if request.user.is_authenticated:
         data = {'username': request.user.get_username()}
-        notifications = Notification.objects.filter(user = request.user).order_by('-date_posted')[:5]
+        notifications = Notification.objects.filter(user = request.user).order_by('-date_posted')[:10]
         data['notifications'] = notifications
         # not seen 
         count_noti = UserSeenNotifycation.objects.filter(user = request.user, is_seen = False).count()
@@ -61,7 +61,7 @@ def get_recommendation(request, popular_movie_list):
             if len(liked_movie) == 1:
                 print('helloword')
                 # use Jaccard Index
-                recommend_movie = get_recommend_by_jaccard('tt1038988')
+                recommend_movie = get_recommend_by_jaccard(liked_movie[0])
                 movie_object_list = []
                 for movieid in recommend_movie:
                     movie_object_list.append(Movie.objects.get(movieid=movieid))

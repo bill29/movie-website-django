@@ -96,7 +96,7 @@ class PostToUser(models.Model):
         return CommentToPost.objects.filter(post = self).count()
 
     def get_all_reply(self):
-        replys = CommentToPost.objects.filter(post = self).order_by('-date_posted')
+        replys = CommentToPost.objects.filter(post = self).order_by('date_posted')
         return replys
 
     def get_date(self):
@@ -163,7 +163,14 @@ class Activity(models.Model):
     date_posted = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return 'Activity by '+ str(self.user) + str(self.type)
+        if self.type ==3:
+            return str(self.user)+ ' review ' + str(self.review.movie.title)
+        if self.type ==1:
+            return str(self.user) + ' follow '
+        if self.type ==2:
+            return str(self.user) + ' post'
+
+
 
     def get_date(self):
         return humanize.naturaltime(self.date_posted)

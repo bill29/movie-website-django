@@ -162,7 +162,7 @@ html:not(.dark-style) .account-settings-links .list-group-item.active {
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Bio</label>
+                  <label class="form-label">About</label>
                   <textarea id="bio" class="form-control" rows="5">{{request.user.profile.bio}}</textarea>
                 </div>
                 <div class="form-group">
@@ -233,23 +233,6 @@ html:not(.dark-style) .account-settings-links .list-group-item.active {
                   {% else %}
                     <input id="facebook" type="text" class="form-control" value="">
                   {% endif %}
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Google+</label>
-                  {% if request.user.profile.google_link is not None %}
-                    <input id="google" type="text" class="form-control" value="{{request.user.profile.google_link}}">
-                  {% else %}
-                    <input id="google" type="text" class="form-control" value="">
-                  {% endif %}
-                </div>
-                <div class="form-group">
-                  <label class="form-label">LinkedIn</label>
-                  {% if request.user.profile.linkedln_link is not None %}
-                    <input id="linked" type="text" class="form-control" value="{{request.user.profile.linkedln_link}}">
-                  {% else %}
-                    <input id="linked" type="text" class="form-control" value="">
-                  {% endif %}
-
                 </div>
                 <div class="form-group">
                   <label class="form-label">Instagram</label>
@@ -490,7 +473,7 @@ html:not(.dark-style) .account-settings-links .list-group-item.active {
     }; 
 
     function resetUpload(){
-      $('#avatar').attr("src","");
+      document.getElementById("avatar").src = '';
     } 
     function change_password(){
       console.log('hello world');

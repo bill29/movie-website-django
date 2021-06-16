@@ -55,7 +55,7 @@ class Actor(models.Model):
         return 'actor'
     
     def get_simple_name(self):
-        if len(self.name) > 12:
+        if len(self.name) >= 12:
             if len(self.name.split()[0]) < len(self.name.split()[1]):
                 return self.name.split()[1]
             return self.name.split()[0]
@@ -125,7 +125,6 @@ class User_Rate(models.Model):
 
     def get_date(self):
         return humanize.naturaltime(self.date_posted)
-
 
 
 class ReplyToReview(models.Model):

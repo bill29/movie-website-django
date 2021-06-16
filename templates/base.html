@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Movie-Hunter</title>
+    <title>IMovie</title>
     <meta name="robots" content="noindex">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% comment %} {% block base_css %} {% endcomment %}
@@ -76,12 +76,25 @@
                        placeholder="Search Movies or Actors"
                        onkeyup="start_timer()" size="55" autocomplete="off" required/>
                 <input type="submit" class="btn btn-info waves-effect waves-light m-b-5" name="search" value="Search"/>
+                {% if request.user.is_authenticated  %}
+                {% comment %} <div style="left:500px"><span>Showing results for</span><a style="color:red"> Money</a></div> {% endcomment %}
                 <div class="searchlistdiv"
-                     style="position:absolute;top:45px;left:380px;user-select:none;display:none;width: 430px;"
+                     style="position:absolute;top:45px;left:380px;display:none;width: 500px;"
+                     aria-expanded="false">
+                    <div style="left:500px"><span>Showing results for</span><a style="color:red"> Money</a></div>
+                    
+                    <div class="search-movie"><h4><b> Movie </b> </h4> </div>
+                    <div class="search-actor"><h4><b> Actor </b> </h4> </div>
+                </div>
+                {% else %}
+                <div class="searchlistdiv"
+                     style="position:absolute;top:45px;left:300px;user-select:none;display:none;width: 500px;"
                      aria-expanded="false">
                     <div class="search-movie"><h4><b> Movie </b> </h4> </div>
                     <div class="search-actor"><h4><b> Actor </b> </h4> </div>
                 </div>
+                {% endif %}
+
             </form>
 
             <ul class="nav navbar-nav navbar-right">
@@ -89,13 +102,23 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link text-light" href="#" id="navbarDropdown" onclick = "seen_noti()" role="button" data-toggle="dropdown">
                             {% if count_noti > 0 %}
-                                <i class="fa fa-bell" id="icon_noti" style="font-size:20px; color:red"> <span id='count_noti' class="badge">{{count_noti}}</span></i>
+                                <i class="fa fa-bell" id="icon_noti" style="font-size:20px"> <span id='count_noti' class="badge">{{count_noti}}</span></i>
                             {% else %}
                                 <i class="fa fa-bell" id="icon_noti" style="font-size:20px"> <span id='count_noti' class="badge"></span></i>
                             {% endif %}
 
 
                         </a>
+                        <style>
+                            .badge {
+                                position: relative;
+                                top: -10px;
+                                left: -13px;
+                                border: 1px solid black;
+                                border-radius: 50%;
+                            }
+
+                        </style>
                         <ul class="dropdown-menu notibox">
                             <div class = "notibox">
                                 <li class="head">
@@ -146,14 +169,15 @@
                         </form>
                     </li>
                 {% else %}
-                    {% if message %}
+                    {% if message == 'login-error' %}
                         <li><p class="navbar-text">{{ message }}</p></li>
-                    {% endif %}
+                    {% else %}
                     <li><p class="navbar-text">Already have an account?</p></li>
+                    {% endif %}
                     <li class="dropdown" >
                         <a href="http://bootsnipp-env.elasticbeanstalk.com/iframe/DV3m4#" class="dropdown-toggle"
                            data-toggle="dropdown"><b>Login</b> <span class="caret"></span></a>
-                        <ul id="login-dp" class="dropdown-menu" >
+                        <ul id="login-dp" class="dropdown-menu" style="background-color:white">
                             <li>
                                 <div class="row">
                                     <div class="col-md-12">
@@ -167,6 +191,7 @@
                                         <form class="form" role="form" method="post" action="/user/login/"
                                               accept-charset="UTF-8" id="login-nav">
                                             {% csrf_token %}
+                                             <p id="helptextLogin" style="color: red"  hidden>The username or password is incorrect.</p>
                                             <div class="form-group">
                                                 <label class="sr-only" for="exampleInputEmail2">User Name</label>
                                                 <input name='username' class="form-control" id="exampleInputEmail2"
@@ -179,7 +204,7 @@
                                             </div>
                                             <div class="form-group">
                                                 <input type="hidden" name="path" value="{{ request.path }}">
-                                                <input type="submit" class="btn btn-primary btn-block" value="Sign in"/>
+                                                <input onclick="sendLogin()" type="submit" class="btn btn-primary btn-block" value="Sign in"/>
                                             </div>
                                             <div class="checkbox">
                                                 <label>
@@ -205,7 +230,29 @@
 </nav>
 <script>
 
-    
+    function sendLogin(){
+                            event.preventDefault();
+                            var username = $('#exampleInputEmail2').val();
+                            var password = $('#exampleInputPassword2').val();
+                            $.ajax({
+                                url: "{% url 'send-login' %}",
+                                type: 'POST',
+                                datatype: 'json',
+                                processData: "application/json",
+                                data: {
+                                    username: username,
+                                    password: password,
+                                },
+                            }).done(function (data){
+                                if(data.mess=='error'){
+                                    $('#helptextLogin').show();
+                                }
+                                else{
+                                    console.log('login succsessful!');
+                                    location.reload();
+                                }
+                            });
+            }
 
     function getCookie(name) {
         var cookieValue = null;
@@ -223,8 +270,9 @@
     }
 
     window.fbAsyncInit = function () {
+        //'876304389878411',
         FB.init({
-            appId: '876304389878411',
+            appId: '1141656836335888',
             cookie: true,
             xfbml: true,  // parse social plugins on this page
             version: 'v2.8' // use graph api version 2.8
@@ -262,7 +310,7 @@
                     $.post("/user/facebook/", {
                         csrfmiddlewaretoken: getCookie('csrftoken'),
                         username: response.name,
-                        password: "facebook"
+                        password: "facebook",
                     }, function () {
                         console.log('okeeeee');
                         location.reload();
@@ -312,23 +360,25 @@
                                         console.log(data);
                                         if (data.check_recommend === 'true') {
                                             console.log('Recommend model ');
-                                            showResult(data.key_recommend);
+                                            //$('.searchlistdiv').prepend()
+                                            showResult(data.key_recommend, data.key_recommend);
+
                                         } else {
                                             console.log('Normal model ');
-                                        showResult(document.getElementById('search-input').value);
+                                        showResult(document.getElementById('search-input').value, '');
                                     }
                                 })
                     }
                     else
                     {
-                        showResult(document.getElementById('search-input').value);
+                        showResult(document.getElementById('search-input').value, '');
                     }
                 }
             }, 500, this_input_time);
     };
 
 
-    function showResult(str) {
+    function showResult(str, mess) {
         console.log(str);
         if (str.length === 0) {
             $(".searchlistdiv").hide();
@@ -360,7 +410,10 @@
             }
             if (data.actor.length === 0)
                 $(".search-actor").after("<div class='no_suggest'><b>No suggestion!</b></div>")
-
+            if (mess.length >0){
+            $(".search-movie").before('<div class="no_suggest">Showing results for <b style="color: red"> ' + mess+ "</b></div>")
+                
+            }
             $(".searchlistdiv").show();
         });
     };
@@ -428,56 +481,52 @@
 
             $('#new_noti_prepend').prepend(
                 '<li class="notification-box" >'
-                +'<div class="row">'
-                +'<div class="col-lg-3 col-sm-3 col-3 text-center">'
-                + '<img src="' + mess.sender_image + '"width =44 height =40 class="w-50 rounded-circle">'
-                +'</div>'    
-                + '<a href ="' + mess.link  + '">'
-                +'<div>'
-                +'<strong style="font-size: 14px; class="text-info">' + mess.sender + '</strong>'
-                + '<p style="font-size: 14px; color: black">'
-                +    mess.noti
-                +    '</p>'
-                + '<small style="font-size: 12px; color: black"' + mess.date + '</small>'
-                + '</div>'  
-                + '</a>'  
-                + '</div>'
+                    +'<div class="row">'
+                        +'<div class="col-lg-3 col-sm-3 col-3 text-center">'
+                            + '<img src="' + mess.sender_image + '"width =44 height =40 class="w-50 rounded-circle">'
+                        +'</div>'
+                        +'<div class="col-lg-8 col-sm-8 col-8">'    
+                            + '<a href ="' + mess.link  + '">'
+                                +'<div>'
+                                    +'<strong style="font-size: 14px; class="text-info">' + mess.sender + '</strong>'
+                                        + '<div style="font-size: 14px; color: black; text-align: left;">'+mess.noti+ '</div>'
+                                            + '<small style="font-size: 12px; color: black"' + mess.date + '</small>'
+                                            + '<small style="font-size: 12px; color: black; text-align: center;" >' + mess.date + '</small>'
+                                + '</div>'  
+                            + '</a>'  
+                        + '</div>'
+                    +'</div>'
                 +'</li>'
             );
-            
-            
         }; 
 
   
 </script>
 {% block mainbody %}
     {% load static %}
+        {% if user.is_authenticated  %}
+            <div style=" margin-left: 1%;">
+                <h4 class="title_text"><a href="#">Top Pick For You </a></h4>
+                {% comment %} <h3 class="title_text" style="color: #f5c518; line-height: 2.5rem; font-size: 2rem"><b>Popular Now </b></h3> {% endcomment %}
+                {% for movie in recommendation %} 
+                    <a href="/movie/movie_detail/{{ movie.movieid }}">
+                        <img id="poster" class="img-rounded" src="{{ movie.poster }}" width="125" height="180">
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
 
-    <div style=" margin-left: 1%;">
-        <h4 class="title_text"><a href="#">Popular now </a></h4>
-        {% comment %} <h3 class="title_text" style="color: #f5c518; line-height: 2.5rem; font-size: 2rem"><b>Popular Now </b></h3> {% endcomment %}
-        {% for movie in popular %}
-            <a href="/movie/movie_detail/{{ movie.movieid }}">
-                <img id="poster" class="img-rounded" src="{{ movie.poster }}" width="125" height="180">
-            </a>
-        {% endfor %}
-    </div>
-    <link rel="stylesheet" type="text/css" href="{% static 'css/index.css' %}"/>
-
-    {% load static %}
-    {% if user.is_authenticated  %}
         <div style=" margin-left: 1%;">
-            <h4 class="title_text"><a href="#">Top Pick For You </a></h4>
+            <h4 class="title_text"><a href="#">Popular now  </a></h4>
 
             {% comment %} <h3 class="title_text" style="color: #f5c518"><b>Top Pick For You </b></h3> {% endcomment %}
-            {% for movie in recommendation %}
+            {% for movie in popular %}
                 <a href="/movie/movie_detail/{{ movie.movieid }}">
                     <img id="poster" class="img-rounded" src="{{ movie.poster }}" width="125" height="180">
                 </a>
             {% endfor %}
 
         </div>
-    {% endif %}
         <div style=" margin-left: 1%;">
             <h4 class="title_text"><a href="#">Top IMDB </a></h4>
             {% comment %} <h3 class="title_text" style="color: #f5c518"><b>Top IMDB </b></h3> {% endcomment %}
@@ -509,6 +558,7 @@
        
 
 {% endblock %}
+
 </body>
 </html>
 
