@@ -385,9 +385,11 @@ def delete_tag(request):
                     # xoa luon ca o comunity
                     data['deleteComunity'] = 1 # true
                     data['id_group'] = '#tag' + tag.tags
+                    data['name_group'] = tag.tags
                 else:
                     data['deleteComunity'] = 0 # False
-                    data['id_count'] = '#x' + tag.tags
+                    data['id_count'] = 'x' + tag.tags
+                    data['name_group'] = tag.tags
                     data['count'] = 'x' + str(dict_comunity[tag.tags] - 1)
 
                 data['mess'] = 'succsess'

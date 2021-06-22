@@ -449,7 +449,7 @@
                                             if(data.newTag == 1){
                                                 // add comunity tagname and count 
                                                 $('.comunity_tags_here').prepend(
-                                                    '<li style ="width:30% "><div class="input-group" id="tag'+ data.tags + '" >' +
+                                                    '<li style ="width:30% "><div class="input-group" name="' + data.tags + '" >' +
                                                     '<span  style="cursor: pointer; background-color: #def0d8" class="input-group-addon">x' + data.new_count + '</span>'+
                                                     '<button class="form-control" id="inputGroupSuccess1" aria-describedby="inputGroupSuccess1Status">' +data.tags +'</button>'+
                                                     '<span style="cursor: pointer" class="input-group-addon">+</span>'+
@@ -459,11 +459,13 @@
                                             else{
                                                 if(data.newTag==0){
                                                     //add count to comunity tag if tagName exits 
-                                                    var id_count = '#x' + data.tags ;
+                                                    var id_count = 'x' + data.tags ;
                                                     var count = 'x' + data.count.toString();
                                                     console.log(count);
                                                     console.log(id_count);
-                                                    $(id_count).text(count);
+                                                    var count_group = document.getElementsByName(id_count);
+                                                    console.log(count_group);
+                                                    $(count_group).text(count);
                                                 }
                                             } 
                                         }
@@ -471,6 +473,7 @@
                                 };
                                 function deleteTag(tagID){
                                     var id = '#'+ tagID.toString();
+                                    var name = "tag" + 
                                     $(id).hide();
                                      $.ajax({
                                         url : "{% url 'delete-tag' %}",
@@ -485,11 +488,19 @@
                                                 console.log(data);
                                                 if(data.deleteComunity == 1){
                                                     // clear comunity
-                                                    $(data.id_group).hide();
+                                                    var comunity_group = document.getElementsByName(data.name_group);
+                                                    console.log(comunity_group);
+                                                    $(comunity_group).hide();
+
                                                 }
                                                 else{
                                                     if(data.deleteComunity == 0){
-                                                        $(data.id_count).text(data.count);
+                                                        // change x count 
+                                                        var count_group = document.getElementsByName(data.id_count);
+                                                        console.log(count_group);
+                                                        $(count_group).text(data.count);
+
+
                                                     }
                                                 }
                                         
@@ -503,8 +514,8 @@
                             <h4>Tags Comunity : </h4>
                             <div class="comunity_tags_here" id="list_actor_carousel" style="padding-left: 0px;">
                                 {% for tagName, countTag in comunity_tags.items %}
-                                    <li style ="width:30%; height : 70% "><div class="input-group" id="tag{{tagName}}" >
-                                        <span id="x{{tagName}}" style="cursor: pointer; background-color:#def0d8" class="input-group-addon">x{{countTag}}</span>
+                                    <li style ="width:30%; height : 70% "><div class="input-group" id="tag{{tagName}}" name="{{tagName}}" >
+                                        <span name="x{{tagName}}" style="cursor: pointer; background-color:#def0d8" class="input-group-addon">x{{countTag}}</span>
                                         <button class="form-control" id="inputGroupSuccess1" aria-describedby="inputGroupSuccess1Status"> {{tagName}}</button>
                                         <span onclick="addTag('{{tagName}}')" style="cursor: pointer" class="input-group-addon">+</span>
                                     </div></li>
@@ -834,7 +845,7 @@
                                                             {% for reply in review.get_all_reply %}
                                                                 <div class="media-body" style="padding-left: 10px ; border: 5px">
                                                                     <div class="media-title mt-0 mb-1">
-                                                                        <a href="{{ reply.user.profile.get_absolute_url }}">{{ reply.user.username }}</a> <small> just now</small>
+                                                                        <a href="{{ reply.user.profile.get_absolute_url }}">{{ reply.user.username }}</a> <small> {{reply.get_date}}</small>
                                                                     </div>
                                                                     <div class ="reply-content" >
                                                                         {{reply.content}}
