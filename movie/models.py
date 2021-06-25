@@ -20,10 +20,10 @@ class Movie(models.Model):
     genres = models.CharField(max_length=100)
     rate = models.IntegerField(default=0)
     poster = models.URLField(default='')
-    plot = models.CharField(max_length=500)
+    plot = models.CharField(max_length=1000)
     trailer = models.URLField(default='')
     #addd
-    movielenid = models.IntegerField(default=0)
+    movielenid = models.CharField(max_length=20)
     youtubeid = models.CharField(max_length=500)
 
     def __str__(self):

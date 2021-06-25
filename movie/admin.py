@@ -14,7 +14,7 @@ class ActorAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Movie, MovieAdmin)
-admin.site.register(Actor, ActorAdmin)
+# admin.site.register(Actor, ActorAdmin)
 # admin.site.register(Seen)
 # admin.site.register(Expect)
 # admin.site.register(Popularity)

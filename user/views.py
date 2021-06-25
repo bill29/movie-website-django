@@ -55,7 +55,7 @@ def user_login(request):
         else:
             return redirect('/')
     else:
-        return render(request, '404.html')
+        return redirect('/')
 
 @csrf_exempt
 def send_login(request):
