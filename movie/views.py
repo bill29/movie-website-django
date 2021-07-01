@@ -543,7 +543,12 @@ def seen(request, movie_id):
                         [movie_dict[movie.movieid_id] for movie in Expect.objects.filter(username=request.user.username)])
     unwatched_movies = set(search_index.data_in_memory['movie_list']) - watched_movies
     
+    notifications = Notification.objects.filter(user = request.user).order_by('-date_posted')[:10]
+    count_noti = UserSeenNotifycation.objects.filter(user = request.user, is_seen = False).count()
+    
     data = {}
+    data['notifications'] = notifications
+    data['count_noti'] = count_noti
     # add you may also like movie - recommend here 
 
     data['top_movie'] = top_movie(request)
@@ -601,7 +606,12 @@ def expect(request, movie_id):
                         [movie_dict[movie.movieid_id] for movie in Expect.objects.filter(username=request.user.username)])
     unwatched_movies = set(search_index.data_in_memory['movie_list']) - watched_movies
     
+    notifications = Notification.objects.filter(user = request.user).order_by('-date_posted')[:10]
+    count_noti = UserSeenNotifycation.objects.filter(user = request.user, is_seen = False).count()
+    
     data = {}
+    data['notifications'] = notifications
+    data['count_noti'] = count_noti
     # add you may also like movie - recommend here 
 
     data['top_movie'] = top_movie(request)

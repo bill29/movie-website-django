@@ -73,6 +73,7 @@ def get_recommendation(request, popular_movie_list):
 
                 return result
             elif len(liked_movie) >=2 :
+                print('recommend by cosine')
                 print(liked_movie)
                 # user cosine similarity
                 recommend_movie = get_recommend_by_cosine(liked_movie)
